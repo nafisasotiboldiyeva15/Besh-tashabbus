@@ -1,0 +1,30 @@
+{
+  "users": [
+    {
+      "id": "u_admin_001",
+      "username": "admin",
+      "password": "ha63f45da",
+      "fullName": "Hamidulla Abdualiyev",
+      "role": "admin",
+      "faculty": "Institut Maʼmuriyati",
+      "groupName": "Yoshlar bilan ishlash bo‘limi",
+      "clubId": null,
+      "active": true,
+      "createdAt": "2026-09-01T08:00:00.000Z"
+    }
+  ],
+  "clubs": [],
+  "schedules": [],
+  "sessions": [],
+  "memberships": [],
+  "reports": [],
+  "annualReports": [],
+  "submissions": [],
+  "files": [],
+  "tokens": {
+    "token_01d7d92_bd44b": "u_admin_001"
+  },
+  "notifications": [],
+  "_deletedClubIds": [],
+  "_serverUpdatedAt": "2026-09-24T15:35:00.000Z"
+}

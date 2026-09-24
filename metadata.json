@@ -1,0 +1,8 @@
+{
+  "name": "5 muhim tashabbus - To'garaklar nazorati tizimi",
+  "description": "Is'hoqxon Ibrat nomidagi Namangan davlat chet tillari institutida 5 muhim tashabbus doirasidagi to'garaklar faoliyati, haftalik dars jadvali, nizomlar va hisobotlar nazorati tizimi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

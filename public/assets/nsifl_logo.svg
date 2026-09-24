@@ -1,0 +1,88 @@
+<svg viewBox="0 0 500 500" width="500" height="500" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <!-- Circular arch path for text from bottom-left up and over the top to bottom-right -->
+    <path id="archPath" d="M 134,407 A 187,187 0 1,1 366,407" fill="none" />
+  </defs>
+
+  <!-- Clean Background -->
+  <circle cx="250" cy="250" r="248" fill="#FFFFFF" />
+
+  <!-- Outer Concentric Teal Rings -->
+  <circle cx="250" cy="250" r="242" fill="none" stroke="#00828A" stroke-width="3.2" />
+  <circle cx="250" cy="250" r="236" fill="none" stroke="#00828A" stroke-width="1.8" />
+  <circle cx="250" cy="250" r="231" fill="none" stroke="#00828A" stroke-width="1" />
+
+  <!-- Inner Rings Enclosing the Center Emblem -->
+  <circle cx="250" cy="250" r="172" fill="none" stroke="#00828A" stroke-width="2.2" />
+  <circle cx="250" cy="250" r="166" fill="none" stroke="#00828A" stroke-width="1.2" />
+
+  <!-- Curved Institutional Text along Arc -->
+  <text fill="#0B2038" font-family="'Times New Roman', 'Liberation Serif', Georgia, serif" font-weight="900" font-size="18.5" letter-spacing="0.8">
+    <textPath href="#archPath" xlink:href="#archPath" startOffset="50%" text-anchor="middle">
+      IS'HOQXON IBRAT NOMIDAGI NAMANGAN DAVLAT CHET TILLARI INSTITUTI
+    </textPath>
+  </text>
+
+  <!-- Bottom: Left Uzbek Flag Ribbon -->
+  <g transform="translate(196, 436)">
+    <!-- Blue band -->
+    <path d="M-28,-8 Q-14,-14 0,-8 Q14,-2 28,-8 L28,-3 Q14,3 0,-3 Q-14,-9 -28,-3 Z" fill="#0099B5" />
+    <!-- Red line -->
+    <path d="M-28,-3 Q-14,-9 0,-3 Q14,3 28,-3 L28,-2 Q14,4 0,-2 Q-14,-8 -28,-2 Z" fill="#CE1126" />
+    <!-- White band -->
+    <path d="M-28,-2 Q-14,-8 0,-2 Q14,4 28,-2 L28,2 Q14,8 0,2 Q-14,-4 -28,2 Z" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.3" />
+    <!-- Red line -->
+    <path d="M-28,2 Q-14,-4 0,2 Q14,8 28,2 L28,3 Q14,9 0,3 Q-14,-3 -28,3 Z" fill="#CE1126" />
+    <!-- Green band -->
+    <path d="M-28,3 Q-14,-3 0,3 Q14,9 28,3 L28,8 Q14,14 0,8 Q-14,2 -28,8 Z" fill="#1EB53A" />
+  </g>
+
+  <!-- Year 2022 -->
+  <text x="250" y="442" text-anchor="middle" font-family="'Times New Roman', Georgia, serif" font-weight="900" font-size="18" fill="#0B2038" letter-spacing="1">
+    2022
+  </text>
+
+  <!-- Bottom: Right Uzbek Flag Ribbon -->
+  <g transform="translate(304, 436)">
+    <!-- Blue band -->
+    <path d="M-28,-8 Q-14,-14 0,-8 Q14,-2 28,-8 L28,-3 Q14,3 0,-3 Q-14,-9 -28,-3 Z" fill="#0099B5" />
+    <!-- Red line -->
+    <path d="M-28,-3 Q-14,-9 0,-3 Q14,3 28,-3 L28,-2 Q14,4 0,-2 Q-14,-8 -28,-2 Z" fill="#CE1126" />
+    <!-- White band -->
+    <path d="M-28,-2 Q-14,-8 0,-2 Q14,4 28,-2 L28,2 Q14,8 0,2 Q-14,-4 -28,2 Z" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.3" />
+    <!-- Red line -->
+    <path d="M-28,2 Q-14,-4 0,2 Q14,8 28,2 L28,3 Q14,9 0,3 Q-14,-3 -28,3 Z" fill="#CE1126" />
+    <!-- Green band -->
+    <path d="M-28,3 Q-14,-3 0,3 Q14,9 28,3 L28,8 Q14,14 0,8 Q-14,2 -28,8 Z" fill="#1EB53A" />
+  </g>
+
+  <!-- ================= Central Temple Architecture ================= -->
+  <!-- Triangular Roof Pediment -->
+  <polygon points="120,158 250,116 380,158" fill="#00828A" />
+
+  <!-- Architrave Beams under Roof -->
+  <rect x="128" y="164" width="244" height="7" fill="#00828A" />
+  <rect x="128" y="177" width="244" height="15" fill="#00828A" />
+
+  <!-- Big Bold N S I F L Letters -->
+  <g fill="#00828A">
+    <!-- N -->
+    <path d="M 131,202 L 150,202 L 168,290 L 168,202 L 184,202 L 184,328 L 165,328 L 147,240 L 147,328 L 131,328 Z" />
+
+    <!-- S -->
+    <path d="M 233,230 L 217,230 C 217,220 212,216 203,216 C 195,216 190,220 190,227 C 190,236 197,241 210,248 C 227,256 235,267 235,284 C 235,309 220,330 195,330 C 172,330 159,313 158,292 L 174,292 C 175,306 182,315 195,315 C 205,315 218,309 218,289 C 218,279 211,273 199,266 C 182,258 173,248 173,230 C 173,210 188,200 205,200 C 224,200 233,213 233,230 Z" />
+
+    <!-- I -->
+    <rect x="242" y="202" width="18" height="126" />
+
+    <!-- F -->
+    <path d="M 270,202 L 312,202 L 312,218 L 288,218 L 288,255 L 309,255 L 309,271 L 288,271 L 288,328 L 270,328 Z" />
+
+    <!-- L -->
+    <path d="M 324,202 L 342,202 L 342,312 L 369,312 L 369,328 L 324,328 Z" />
+  </g>
+
+  <!-- Lower Base Steps (Stylobate) -->
+  <rect x="128" y="342" width="244" height="10" fill="#00828A" />
+  <rect x="128" y="358" width="244" height="15" fill="#00828A" />
+</svg>
