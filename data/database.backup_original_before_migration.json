@@ -1,0 +1,105 @@
+{
+  "users": [
+    {
+      "id": "u_admin_001",
+      "username": "admin",
+      "password": "ha63f45da",
+      "fullName": "Hamidulla Abdualiyev",
+      "role": "admin",
+      "faculty": "Institut Maʼmuriyati",
+      "groupName": "Yoshlar bilan ishlash bo‘limi",
+      "clubId": null,
+      "active": true,
+      "createdAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "u_leader_nafisa",
+      "username": "nafisa",
+      "password": "h63c22027",
+      "fullName": "Nafisa Sotiboldiyeva",
+      "role": "leader",
+      "faculty": "Roman-german tillari fakulteti",
+      "groupName": "Amaliy sanʼat va dizayn kafedrasi",
+      "clubId": null,
+      "active": true,
+      "createdAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "u_1il7z3w3",
+      "username": "talaba1",
+      "password": "h3dfc73fc",
+      "fullName": "Sardor Rahimov",
+      "role": "student",
+      "faculty": "Ingliz tili",
+      "groupName": "101-guruh",
+      "clubId": null,
+      "active": true,
+      "createdAt": "2026-10-09T17:19:14.500Z"
+    }
+  ],
+  "clubs": [],
+  "sessions": [],
+  "schedules": [],
+  "memberships": [],
+  "reports": [],
+  "annualReports": [],
+  "submissions": [],
+  "files": [],
+  "notifications": [
+    {
+      "id": "notif_01",
+      "userId": "all",
+      "title": "NamDChTI 5 muhim tashabbus to‘garaklar tizimi",
+      "message": "Is'hoqxon Ibrat nomidagi Namangan davlat chet tillari institutida to‘garaklar faoliyatini yuritish tizimi ishga tushirildi.",
+      "type": "info",
+      "read": true,
+      "createdAt": "2026-09-01T08:00:00.000Z"
+    }
+  ],
+  "tokens": {
+    "token_admin": "u_admin_001",
+    "token_nafisa": "u_leader_nafisa",
+    "token_3sqay499ux": "u_1il7z3w3",
+    "token_mv18ct9m_gkqao": "u_1il7z3w3",
+    "token_muzvhgrw_u3rwm": "u_admin_001"
+  },
+  "_serverUpdatedAt": "2026-10-10T16:35:56.552Z",
+  "_deletedClubIds": [
+    "c_mohir_qollar",
+    "c_vokal",
+    "c_sport",
+    "c_it",
+    "c_reading",
+    "c_craft",
+    "test_c1",
+    "c_test",
+    "club_01",
+    "club_02",
+    "club_03",
+    "club_04",
+    "club_05",
+    "test",
+    "test_c_01",
+    "c_real_user_club_1"
+  ],
+  "_deletedMembershipIds": [
+    "m_01",
+    "m_02",
+    "m_03",
+    "m_test_add_1791483430142",
+    "m_test_del_1791482784514",
+    "test_dummy_id",
+    "test_m1",
+    "m_test_persistence_1"
+  ],
+  "_deletedUserIds": [
+    "u_lead_001",
+    "u_lead_002",
+    "u_lead_003",
+    "u_lead_004",
+    "u_lead_005",
+    "u_stud_001",
+    "u_stud_002",
+    "u_stud_003"
+  ]
+}

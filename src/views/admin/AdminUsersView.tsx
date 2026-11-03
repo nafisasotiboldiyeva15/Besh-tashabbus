@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { UserCog, Shield, User, GraduationCap, CheckCircle, Ban, KeyRound, X, Plus, Sparkles, UserPlus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { UserCog, Shield, User, GraduationCap, CheckCircle, Ban, KeyRound, X, Plus, Sparkles, UserPlus, Trash2, AlertTriangle } from 'lucide-react';
 import { I18N, Language } from '../../lib/i18n';
 import { storage } from '../../lib/storage';
 import { User as UserType, Role } from '../../types';
@@ -15,6 +15,10 @@ export const AdminUsersView: React.FC<{
   const [newPassword, setNewPassword] = useState('');
   const [newUsername, setNewUsername] = useState('');
 
+  // Delete modal state
+  const [userToDelete, setUserToDelete] = useState<UserType | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
   // Create user modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createRole, setCreateRole] = useState<Role>('leader');
@@ -26,6 +30,37 @@ export const AdminUsersView: React.FC<{
 
   const refreshList = () => {
     setUsers([...storage.getUsers()]);
+  };
+
+  useEffect(() => {
+    const unsub = storage.subscribe(() => {
+      setUsers([...storage.getUsers()]);
+    });
+    return unsub;
+  }, []);
+
+  const handleOpenDelete = (u: UserType) => {
+    if (u.role === 'admin') {
+      showToast('Asosiy administrator hisobini o‘chirib bo‘lmaydi', 'err');
+      return;
+    }
+    setUserToDelete(u);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!userToDelete) return;
+    try {
+      const name = userToDelete.fullName;
+      storage.deleteUser(userToDelete.id);
+      setIsDeleteModalOpen(false);
+      setUserToDelete(null);
+      refreshList();
+      showToast(`«${name}» foydalanuvchisi tizimdan butunlay o‘chirildi!`, 'ok');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'O‘chirishda xatolik yuz berdi';
+      showToast(msg, 'err');
+    }
   };
 
   const handleToggleActive = (targetUser: UserType) => {
@@ -53,17 +88,17 @@ export const AdminUsersView: React.FC<{
     e.preventDefault();
     if (!passwordModalUser) return;
     try {
-      if (passwordModalUser.role === 'admin') {
-        storage.updateAdminCredentials(newUsername, newPassword || undefined);
-      } else {
-        if (!newPassword || newPassword.length < 4) {
-          showToast('Parol kamida 4 ta belgidan iborat bo‘lishi kerak', 'err');
-          return;
-        }
-        storage.updateUserPassword(passwordModalUser.id, newPassword);
+      if (newPassword && newPassword.length < 4) {
+        showToast('Parol kamida 4 ta belgidan iborat bo‘lishi kerak', 'err');
+        return;
       }
+      storage.updateUserCredentials(
+        passwordModalUser.id,
+        newUsername.trim() || undefined,
+        newPassword.trim() || undefined
+      );
       refreshList();
-      showToast('Login/Parol muvaffaqiyatli yangilandi!', 'ok');
+      showToast('Login va parol muvaffaqiyatli yangilandi!', 'ok');
       setPasswordModalUser(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Xatolik yuz berdi';
@@ -199,17 +234,29 @@ export const AdminUsersView: React.FC<{
                         </button>
 
                         {u.role !== 'admin' && (
-                          <button
-                            type="button"
-                            onClick={() => handleToggleActive(u)}
-                            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                              u.active
-                                ? 'text-rose-700 bg-rose-50 border-rose-200 hover:bg-rose-100'
-                                : 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
-                            }`}
-                          >
-                            {u.active ? t.admin.block : t.admin.unblock}
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleActive(u)}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                                u.active
+                                  ? 'text-amber-700 bg-amber-50 border-amber-200 hover:bg-amber-100'
+                                  : 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+                              }`}
+                            >
+                              {u.active ? t.admin.block : t.admin.unblock}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDelete(u)}
+                              className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer"
+                              title="Foydalanuvchini butunlay o‘chirish"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">O‘chirish</span>
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -311,7 +358,6 @@ export const AdminUsersView: React.FC<{
               className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white"
             >
               <option value="leader">To‘garak rahbari (O‘qituvchi / Murabbiy)</option>
-              <option value="student">Talaba</option>
               <option value="admin">Administrator</option>
             </select>
           </div>
@@ -388,6 +434,79 @@ export const AdminUsersView: React.FC<{
           </div>
         </form>
       </Modal>
+
+      {/* Delete User Modal */}
+      {userToDelete && (
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setUserToDelete(null);
+          }}
+          title="Foydalanuvchini tizimdan o‘chirish"
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setUserToDelete(null);
+                }}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                {t.common.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Ha, butunlay o‘chirilsin</span>
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 text-sm">
+              <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <div className="font-bold">Ushbu foydalanuvchini o‘chirib tashlashni tasdiqlaysizmi?</div>
+                <div className="text-xs text-rose-700 mt-1">
+                  Ushbu amal qaytarib bo‘lmaydi. Foydalanuvchining barcha hisobi, sessiyalari va arizalari tizimdan butunlay olib tashlanadi.
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500">F.I.SH:</span>
+                <span className="font-bold text-slate-800">{userToDelete.fullName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Login nomi:</span>
+                <span className="font-mono font-bold text-slate-800">@{userToDelete.username}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Tizimdagi roli:</span>
+                <span className="font-bold text-slate-800">{t.role[userToDelete.role]}</span>
+              </div>
+              {userToDelete.faculty && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Fakultet:</span>
+                  <span className="font-semibold text-slate-700">{userToDelete.faculty}</span>
+                </div>
+              )}
+              {userToDelete.groupName && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">{userToDelete.role === 'leader' ? 'Kafedra:' : 'Guruh:'}</span>
+                  <span className="font-semibold text-slate-700">{userToDelete.groupName}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

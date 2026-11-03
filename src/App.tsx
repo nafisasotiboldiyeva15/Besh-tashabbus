@@ -29,7 +29,6 @@ import { LeaderSubmissionsView } from './views/leader/LeaderSubmissionsView';
 // Student views
 import { StudentBrowseView } from './views/student/StudentBrowseView';
 import { StudentApplicationsView } from './views/student/StudentApplicationsView';
-import { StudentWorkView } from './views/student/StudentWorkView';
 
 export function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -37,47 +36,84 @@ export function App() {
   const [activeView, setActiveView] = useState<string>('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'ok' | 'err' } | null>(null);
-  const [refreshTick, setRefreshTick] = useState(0);
 
   // Check saved token on mount
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      const u = storage.getUserByToken(token);
-      if (u) {
-        setCurrentUser(u);
-        setDefaultViewForRole(u.role);
-      } else {
-        localStorage.removeItem('auth_token');
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        const u = storage.getUserByToken(token);
+        if (u) {
+          setCurrentUser(u);
+          setDefaultViewForRole(u.role);
+          return;
+        }
       }
+      const savedUserId = localStorage.getItem('auth_user_id');
+      if (savedUserId) {
+        const u = storage.getUserById(savedUserId);
+        if (u) {
+          setCurrentUser(u);
+          setDefaultViewForRole(u.role);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to restore token:', e);
     }
   }, []);
 
   // Real-time synchronization subscription across phones / devices
   useEffect(() => {
     const unsubscribe = storage.subscribe(() => {
-      setRefreshTick((t) => t + 1);
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        const u = storage.getUserByToken(token);
-        if (u) setCurrentUser(u);
-      }
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          const u = storage.getUserByToken(token);
+          if (u) {
+            setCurrentUser((prev) => {
+              if (
+                !prev ||
+                prev.id !== u.id ||
+                prev.role !== u.role ||
+                prev.fullName !== u.fullName ||
+                prev.clubId !== u.clubId
+              ) {
+                return u;
+              }
+              return prev;
+            });
+          }
+        } else {
+          const savedUserId = localStorage.getItem('auth_user_id');
+          if (savedUserId) {
+            const u = storage.getUserById(savedUserId);
+            if (u) {
+              setCurrentUser((prev) => {
+                if (
+                  !prev ||
+                  prev.id !== u.id ||
+                  prev.role !== u.role ||
+                  prev.fullName !== u.fullName ||
+                  prev.clubId !== u.clubId
+                ) {
+                  return u;
+                }
+                return prev;
+              });
+            }
+          }
+        }
+      } catch {}
     });
     return unsubscribe;
   }, []);
 
-  const setDefaultViewForRole = (role: 'admin' | 'leader' | 'student') => {
+  const setDefaultViewForRole = (role: string) => {
     if (role === 'admin') setActiveView('overview');
     else if (role === 'leader') setActiveView('myClubs');
-    else if (role === 'student') setActiveView('browse');
+    else setActiveView('browse');
   };
-
-  // Ensure schedule and annual views are strictly restricted to admin and leader
-  useEffect(() => {
-    if (currentUser?.role === 'student' && (activeView === 'schedule' || activeView === 'annual')) {
-      setActiveView('browse');
-    }
-  }, [currentUser, activeView]);
 
   const showToast = (message: string, type: 'ok' | 'err' = 'ok') => {
     setToast({ message, type });
@@ -86,11 +122,22 @@ export function App() {
     }, 3500);
   };
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = (user?: User) => {
+    if (user) {
+      try {
+        localStorage.setItem('auth_user_id', user.id);
+      } catch {}
+      setCurrentUser(user);
+      setDefaultViewForRole(user.role);
+      return;
+    }
     const token = localStorage.getItem('auth_token');
     if (token) {
       const u = storage.getUserByToken(token);
       if (u) {
+        try {
+          localStorage.setItem('auth_user_id', u.id);
+        } catch {}
         setCurrentUser(u);
         setDefaultViewForRole(u.role);
       }
@@ -103,11 +150,14 @@ export function App() {
       storage.logout(token);
       localStorage.removeItem('auth_token');
     }
+    try {
+      localStorage.removeItem('auth_user_id');
+    } catch {}
     setCurrentUser(null);
   };
 
   const handleTriggerRefresh = () => {
-    setRefreshTick((v) => v + 1);
+    storage.notifySubscribers();
   };
 
   if (!currentUser) {
@@ -121,17 +171,23 @@ export function App() {
     );
   }
 
-  // Count pending items for badges
-  const pendingStatutes = storage
-    .getClubs()
-    .filter((c) => c.statuteStatus === 'pending' && c.statuteFileId).length;
+  // Count pending items for badges safely
+  let pendingStatutes = 0;
+  let pendingMemberships = 0;
+  try {
+    pendingStatutes = storage
+      .getClubs()
+      .filter((c) => c.statuteStatus === 'pending' && c.statuteFileId).length;
 
-  const pendingMemberships =
-    currentUser.role === 'leader'
-      ? storage
-          .getMemberships({ leaderId: currentUser.id })
-          .filter((m) => m.status === 'pending').length
-      : storage.getMemberships().filter((m) => m.status === 'pending').length;
+    pendingMemberships =
+      currentUser.role === 'leader'
+        ? storage
+            .getMemberships({ leaderId: currentUser.id })
+            .filter((m) => m.status === 'pending').length
+        : storage.getMemberships().filter((m) => m.status === 'pending').length;
+  } catch (err) {
+    console.warn('Failed to calculate badges:', err);
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
@@ -186,7 +242,6 @@ export function App() {
                 lang={lang}
                 showToast={showToast}
                 onRefresh={handleTriggerRefresh}
-                key={refreshTick}
               />
             )}
 
@@ -197,7 +252,6 @@ export function App() {
                   <AdminOverviewView
                     lang={lang}
                     onSelectView={setActiveView}
-                    key={refreshTick}
                   />
                 )}
                 {activeView === 'statutes' && (
@@ -205,15 +259,14 @@ export function App() {
                     lang={lang}
                     showToast={showToast}
                     onRefresh={handleTriggerRefresh}
-                    key={refreshTick}
                   />
                 )}
                 {activeView === 'memberships' && (
                   <AdminMembershipsView
+                    user={currentUser}
                     lang={lang}
                     showToast={showToast}
                     onRefresh={handleTriggerRefresh}
-                    key={refreshTick}
                   />
                 )}
                 {activeView === 'schedule' && (
@@ -222,7 +275,6 @@ export function App() {
                     lang={lang}
                     showToast={showToast}
                     onRefresh={handleTriggerRefresh}
-                    key={refreshTick}
                   />
                 )}
                 {activeView === 'clubs' && (
@@ -230,13 +282,12 @@ export function App() {
                     lang={lang}
                     showToast={showToast}
                     onRefresh={handleTriggerRefresh}
-                    key={refreshTick}
                   />
                 )}
-                {activeView === 'reports' && <AdminReportsView lang={lang} key={refreshTick} />}
-                {activeView === 'submissions' && <AdminSubmissionsView lang={lang} key={refreshTick} />}
+                {activeView === 'reports' && <AdminReportsView lang={lang} />}
+                {activeView === 'submissions' && <AdminSubmissionsView lang={lang} />}
                 {activeView === 'users' && (
-                  <AdminUsersView lang={lang} showToast={showToast} key={refreshTick} />
+                  <AdminUsersView lang={lang} showToast={showToast} />
                 )}
               </>
             )}
@@ -250,7 +301,6 @@ export function App() {
                     lang={lang}
                     showToast={showToast}
                     onRefresh={handleTriggerRefresh}
-                    key={refreshTick}
                   />
                 )}
                 {activeView === 'schedule' && (
@@ -259,7 +309,6 @@ export function App() {
                     lang={lang}
                     showToast={showToast}
                     onRefresh={handleTriggerRefresh}
-                    key={refreshTick}
                   />
                 )}
                 {activeView === 'members' && (
@@ -268,7 +317,6 @@ export function App() {
                     lang={lang}
                     showToast={showToast}
                     onRefresh={handleTriggerRefresh}
-                    key={refreshTick}
                   />
                 )}
                 {activeView === 'reports' && (
@@ -277,11 +325,10 @@ export function App() {
                     lang={lang}
                     showToast={showToast}
                     onRefresh={handleTriggerRefresh}
-                    key={refreshTick}
                   />
                 )}
                 {activeView === 'submissions' && (
-                  <LeaderSubmissionsView user={currentUser} lang={lang} key={refreshTick} />
+                  <LeaderSubmissionsView user={currentUser} lang={lang} />
                 )}
               </>
             )}
@@ -296,7 +343,6 @@ export function App() {
                     showToast={showToast}
                     onRefresh={handleTriggerRefresh}
                     onSelectView={setActiveView}
-                    key={refreshTick}
                   />
                 )}
                 {activeView === 'myApps' && (
@@ -304,17 +350,6 @@ export function App() {
                     user={currentUser}
                     lang={lang}
                     onSelectView={setActiveView}
-                    key={refreshTick}
-                  />
-                )}
-                {activeView === 'myWork' && (
-                  <StudentWorkView
-                    user={currentUser}
-                    lang={lang}
-                    showToast={showToast}
-                    onRefresh={handleTriggerRefresh}
-                    onSelectView={setActiveView}
-                    key={refreshTick}
                   />
                 )}
               </>

@@ -12,6 +12,7 @@ import {
   Sparkles,
   BarChart3,
   Camera,
+  Send,
   X,
   Shield,
   User as UserIcon,
@@ -57,10 +58,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { key: 'schedule', labelKey: t.nav.schedule, icon: CalendarDays },
     { key: 'annual', labelKey: t.nav.annual, icon: BarChart3 },
     { key: 'statutes', labelKey: t.nav.statutes, icon: Scroll, badge: pendingStatutesCount },
-    { key: 'memberships', labelKey: t.nav.memberships, icon: FileCheck },
+    { key: 'memberships', labelKey: t.nav.memberships, icon: Users },
     { key: 'clubs', labelKey: t.nav.clubs, icon: Users },
     { key: 'reports', labelKey: t.nav.reports, icon: Paperclip },
-    { key: 'submissions', labelKey: t.nav.submissions, icon: ImageIcon },
+    { key: 'submissions', labelKey: t.nav.submissions, icon: Send },
     { key: 'users', labelKey: t.nav.users, icon: UserCog },
   ];
 
@@ -68,18 +69,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { key: 'myClubs', labelKey: t.nav.myClubs, icon: Users },
     { key: 'schedule', labelKey: t.nav.schedule, icon: CalendarDays },
     { key: 'annual', labelKey: t.nav.annual, icon: BarChart3 },
-    { key: 'members', labelKey: t.nav.memberships, icon: FileCheck, badge: pendingMembershipsCount },
+    { key: 'members', labelKey: t.nav.memberships, icon: Users, badge: pendingMembershipsCount },
     { key: 'reports', labelKey: t.nav.reports, icon: Paperclip },
-    { key: 'submissions', labelKey: t.nav.submissions, icon: ImageIcon },
+    { key: 'submissions', labelKey: t.nav.submissions, icon: Send },
   ];
 
   const studentNav: NavItem[] = [
-    { key: 'browse', labelKey: t.nav.browse, icon: Compass },
-    { key: 'myWork', labelKey: t.nav.myWork, icon: Camera },
-    { key: 'myApps', labelKey: t.student.myApps, icon: FileCheck },
+    { key: 'browse', labelKey: t.nav.browse || 'To‘garaklarga a’zolik', icon: Compass },
+    { key: 'myApps', labelKey: t.student.myApps || 'Mening arizalarim', icon: FileCheck },
   ];
 
-  const items = role === 'admin' ? adminNav : role === 'leader' ? leaderNav : studentNav;
+  let items = adminNav;
+  if (role === 'leader') items = leaderNav;
+  else if (role === 'student') items = studentNav;
 
   const initials = currentUser.fullName
     ? currentUser.fullName

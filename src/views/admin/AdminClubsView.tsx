@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, FileText, User, Calendar, Trash2, Search, Filter, AlertTriangle, ShieldAlert, Sparkles, Plus, Clock, MapPin, CheckCircle2 } from 'lucide-react';
 import { I18N, Language, CATEGORIES } from '../../lib/i18n';
-import { storage } from '../../lib/storage';
+import { storage, normalizeClubTime } from '../../lib/storage';
 import { StatusBadge, CategoryTag } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { Club, User as UserType } from '../../types';
@@ -35,14 +35,13 @@ export const AdminClubsView: React.FC<{
   const [newClubStartDate, setNewClubStartDate] = useState('2026-09-01');
   const [newClubEndDate, setNewClubEndDate] = useState('2027-06-30');
   const [newClubDays, setNewClubDays] = useState<number[]>([1, 3]);
-  const [newClubTimeStart, setNewClubTimeStart] = useState('14:30');
-  const [newClubTimeEnd, setNewClubTimeEnd] = useState('16:00');
+  const [newClubTimeStart, setNewClubTimeStart] = useState('11:00');
+  const [newClubTimeEnd, setNewClubTimeEnd] = useState('12:30');
   const [newClubStatus, setNewClubStatus] = useState<'approved' | 'pending'>('approved');
 
   const refreshList = () => {
     setClubs(storage.getClubs());
     setUsers(storage.getUsers());
-    if (onRefresh) onRefresh();
   };
 
   useEffect(() => {
@@ -76,6 +75,25 @@ export const AdminClubsView: React.FC<{
       setIsDeleteModalOpen(false);
       setClubToDelete(null);
       refreshList();
+      if (onRefresh) onRefresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'O‘chirishda xatolik yuz berdi';
+      if (showToast) showToast(msg, 'err');
+    }
+  };
+
+  const handleDeleteAllRejected = () => {
+    const rejectedClubs = clubs.filter((c) => c.statuteStatus === 'rejected');
+    if (rejectedClubs.length === 0) return;
+    try {
+      rejectedClubs.forEach((c) => {
+        storage.deleteClub(c.id, 'Rad etilgan to‘garak', 'Hamidulla Abdualiyev (Bosh admin)');
+      });
+      if (showToast) {
+        showToast(`${rejectedClubs.length} ta rad etilgan to‘garak o‘chirildi`, 'ok');
+      }
+      refreshList();
+      if (onRefresh) onRefresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'O‘chirishda xatolik yuz berdi';
       if (showToast) showToast(msg, 'err');
@@ -86,24 +104,6 @@ export const AdminClubsView: React.FC<{
     setNewClubDays((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()
     );
-  };
-
-  const handleSeed5Tashabbus = () => {
-    try {
-      const res = storage.resetOrSeed5TashabbusClubs();
-      refreshList();
-      if (showToast) {
-        showToast(
-          res.addedClubs > 0
-            ? `5 muhim tashabbus to‘garaklari (${res.addedClubs} ta) tizimga muvaffaqiyatli qo‘shildi!`
-            : '5 muhim tashabbus to‘garaklari tizimda to‘liq mavjud!',
-          'ok'
-        );
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Xatolik yuz berdi';
-      if (showToast) showToast(msg, 'err');
-    }
   };
 
   const handleCreateClubSubmit = (e: React.FormEvent) => {
@@ -168,6 +168,7 @@ export const AdminClubsView: React.FC<{
       setNewClubDescription('');
       setNewCustomLeaderName('');
       refreshList();
+      if (onRefresh) onRefresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'To‘garak qo‘shishda xatolik yuz berdi';
       if (showToast) showToast(msg, 'err');
@@ -209,16 +210,6 @@ export const AdminClubsView: React.FC<{
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleSeed5Tashabbus}
-            className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-98"
-            title="5 muhim tashabbus to‘garaklarini avtomatik to‘ldirish"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>5 tashabbus to‘garaklarini yuklash</span>
-          </button>
-
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
@@ -393,14 +384,6 @@ export const AdminClubsView: React.FC<{
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handleSeed5Tashabbus}
-                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>5 muhim tashabbus to‘garaklarini yuklash</span>
-              </button>
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(true)}
@@ -745,9 +728,34 @@ export const AdminClubsView: React.FC<{
               <input
                 type="time"
                 value={newClubTimeStart}
-                onChange={(e) => setNewClubTimeStart(e.target.value)}
+                onChange={(e) => setNewClubTimeStart(normalizeClubTime(e.target.value))}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
               />
+              <div className="flex flex-wrap gap-1 mt-1">
+                {['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00'].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => {
+                      setNewClubTimeStart(p);
+                      const [h, m] = p.split(':').map(Number);
+                      setNewClubTimeEnd(`${String(h + 1).padStart(2, '0')}:${String(m + 30 >= 60 ? m - 30 : m + 30).padStart(2, '0')}`);
+                    }}
+                    className={`px-1.5 py-0.5 text-[9px] rounded font-bold transition-all cursor-pointer ${
+                      newClubTimeStart === p
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              {newClubTimeStart && (
+                <span className="text-[10px] text-emerald-700 font-bold block mt-1">
+                  Tanlangan: {newClubTimeStart} (Kunduzgi vaqt)
+                </span>
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -756,9 +764,30 @@ export const AdminClubsView: React.FC<{
               <input
                 type="time"
                 value={newClubTimeEnd}
-                onChange={(e) => setNewClubTimeEnd(e.target.value)}
+                onChange={(e) => setNewClubTimeEnd(normalizeClubTime(e.target.value))}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
               />
+              <div className="flex flex-wrap gap-1 mt-1">
+                {['10:30', '11:30', '12:30', '13:30', '15:30', '16:30', '17:30'].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setNewClubTimeEnd(p)}
+                    className={`px-1.5 py-0.5 text-[9px] rounded font-bold transition-all cursor-pointer ${
+                      newClubTimeEnd === p
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              {newClubTimeEnd && (
+                <span className="text-[10px] text-emerald-700 font-bold block mt-1">
+                  Tugash: {newClubTimeEnd}
+                </span>
+              )}
             </div>
           </div>
 

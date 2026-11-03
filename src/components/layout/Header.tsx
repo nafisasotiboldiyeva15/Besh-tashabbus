@@ -85,6 +85,19 @@ export const Header: React.FC<HeaderProps> = ({
     }, 400);
   };
 
+  const handleRecoverLocal = () => {
+    const res = storage.recoverFromLocalHistory();
+    if (res.clubsRecovered > 0 || res.usersRecovered > 0 || res.membersRecovered > 0) {
+      showToast(
+        `Ushbu qurilmadan ${res.clubsRecovered} ta to‘garak, ${res.usersRecovered} ta foydalanuvchi tiklandi va serverga sinxronlandi!`,
+        'ok'
+      );
+      if (onDataImported) onDataImported();
+    } else {
+      showToast('Ushbu qurilma xotirasida yangi tiklanadigan ma’lumot topilmadi.', 'ok');
+    }
+  };
+
   const handleExportBackup = () => {
     try {
       const db = storage.getDB();
@@ -119,9 +132,14 @@ export const Header: React.FC<HeaderProps> = ({
         }
 
         if (window.confirm(t.backup.confirmImport)) {
-          storage.setDB(parsed);
-          showToast(t.backup.imported, 'ok');
-          if (onDataImported) onDataImported();
+          storage.importDatabaseJSON(JSON.stringify(parsed))
+            .then(() => {
+              showToast(t.backup.imported, 'ok');
+              if (onDataImported) onDataImported();
+            })
+            .catch((err) => {
+              showToast(err?.message || t.backup.badFile, 'err');
+            });
         }
       } catch {
         showToast(t.backup.badFile, 'err');
@@ -190,6 +208,16 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Backup Buttons - Only visible to Admin */}
         {user.role === 'admin' && (
           <div className="hidden md:flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-xl bg-slate-100/80 border border-slate-200/80">
+            <button
+              type="button"
+              onClick={handleRecoverLocal}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs cursor-pointer border border-slate-200"
+              title="Ushbu qurilma/noutbuk brauzer xotirasidan ma'lumotlarni qidirish va tiklash"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-sky-600" />
+              <span>Avto-tiklash</span>
+            </button>
+
             <button
               type="button"
               onClick={handleExportBackup}

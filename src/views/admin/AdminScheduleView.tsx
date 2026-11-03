@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CalendarDays, Download, Filter, MapPin, Eye, Camera, Image as ImageIcon, X } from 'lucide-react';
+import { CalendarDays, Download, Filter, MapPin, Send, ExternalLink } from 'lucide-react';
 import { I18N, Language } from '../../lib/i18n';
 import { storage, fmtD, weekdayOf } from '../../lib/storage';
 import { StatusBadge } from '../../components/common/Badge';
@@ -26,8 +26,6 @@ export const AdminScheduleView: React.FC<{
   });
 
   const [isExporting, setIsExporting] = useState(false);
-  const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
-  const [viewingSession, setViewingSession] = useState<Session | null>(null);
 
   const handleDownloadPDF = async () => {
     setIsExporting(true);
@@ -95,7 +93,7 @@ export const AdminScheduleView: React.FC<{
         >
           <option value="all">Barcha holatlar</option>
           <option value="planned">Rejalashtirilgan</option>
-          <option value="held">O‘tkazilgan (Fotodalillar bilan)</option>
+          <option value="held">O‘tkazilgan (Telegram havolalar bilan)</option>
           <option value="missed">O‘tkazilmagan</option>
         </select>
       </div>
@@ -246,33 +244,20 @@ export const AdminScheduleView: React.FC<{
                       </td>
 
                       <td className="px-4 py-3.5 whitespace-nowrap">
-                        {ses.photoFile ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setViewingPhotoUrl(ses.photoFile!.url);
-                              setViewingSession(ses);
-                            }}
-                            className="inline-flex items-center gap-2 p-1 pr-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
-                            title="Dars fotosuratini ko‘rish"
+                        {ses.telegramLink ? (
+                          <a
+                            href={ses.telegramLink.startsWith('http') ? ses.telegramLink : `https://${ses.telegramLink}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-bold transition-all shadow-2xs group"
+                            title="Telegram postini ochish"
                           >
-                            <img
-                              src={ses.photoFile.url}
-                              alt="Dars fotodalili"
-                              className="w-8 h-8 rounded-md object-cover shadow-2xs"
-                            />
-                            <div className="text-left">
-                              <span className="text-[11px] font-extrabold text-emerald-800 block leading-tight">
-                                Surat mavjud
-                              </span>
-                              <span className="text-[10px] text-emerald-600 font-semibold">
-                                Ko'rish uchun bosing
-                              </span>
-                            </div>
-                          </button>
+                            <Send className="w-3.5 h-3.5 text-sky-500 group-hover:scale-110 transition-transform" />
+                            <span>Telegram post ↗</span>
+                          </a>
                         ) : (
                           <span className="text-xs text-slate-400 italic">
-                            Fotodalil yo'q
+                            Havola kiritilmagan
                           </span>
                         )}
                       </td>
@@ -284,63 +269,6 @@ export const AdminScheduleView: React.FC<{
           </table>
         </div>
       </div>
-
-      {/* View Photo Lightbox Modal */}
-      {viewingPhotoUrl && (
-        <div
-          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setViewingPhotoUrl(null)}
-        >
-          <div
-            className="bg-white rounded-3xl overflow-hidden max-w-2xl w-full shadow-2xl border border-slate-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="relative">
-              <img
-                src={viewingPhotoUrl}
-                alt="Dars fotosurati"
-                className="w-full max-h-[70vh] object-contain bg-slate-900"
-              />
-              <button
-                type="button"
-                onClick={() => setViewingPhotoUrl(null)}
-                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center cursor-pointer transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {viewingSession && (
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-extrabold text-slate-900 text-base">
-                      {viewingSession.clubName}
-                    </h3>
-                    <p className="text-xs font-semibold text-blue-700 mt-0.5">
-                      Mavzu: {viewingSession.topic}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Sana: <b>{fmtD(viewingSession.date)}</b>, {viewingSession.time} • Xona: <b>{viewingSession.location}</b>
-                    </p>
-                  </div>
-                  {viewingSession.attendeeCount && (
-                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-extrabold shrink-0 border border-emerald-300">
-                      {viewingSession.attendeeCount} nafar qatnashchi
-                    </span>
-                  )}
-                </div>
-
-                {viewingSession.heldNote && (
-                  <p className="text-xs text-slate-600 mt-3 pt-3 border-t border-slate-100 italic">
-                    "{viewingSession.heldNote}"
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

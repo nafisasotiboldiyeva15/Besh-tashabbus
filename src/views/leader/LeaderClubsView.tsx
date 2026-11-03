@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Users, Calendar, FileText, Upload, MapPin, Clock, CalendarDays, CheckCircle2, AlertTriangle, Sparkles, Trash2 } from 'lucide-react';
 import { I18N, Language, CATEGORIES } from '../../lib/i18n';
-import { storage, ymd } from '../../lib/storage';
+import { storage, ymd, normalizeClubTime } from '../../lib/storage';
 import { StatusBadge, CategoryTag } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { Club, User } from '../../types';
@@ -39,8 +39,8 @@ export const LeaderClubsView: React.FC<{
   futureDate.setDate(futureDate.getDate() + 90);
   const [clubStartDate, setClubStartDate] = useState(today);
   const [clubEndDate, setClubEndDate] = useState(ymd(futureDate));
-  const [clubTimeStart, setClubTimeStart] = useState('14:00');
-  const [clubTimeEnd, setClubTimeEnd] = useState('15:30');
+  const [clubTimeStart, setClubTimeStart] = useState('11:00');
+  const [clubTimeEnd, setClubTimeEnd] = useState('12:30');
   const [selectedDays, setSelectedDays] = useState<number[]>([2, 4]); // Seshanba, Payshanba by default
   const [statuteFile, setStatuteFile] = useState<{ name: string; mime: string; data: string } | null>(null);
 
@@ -498,9 +498,34 @@ export const LeaderClubsView: React.FC<{
                 type="time"
                 required
                 value={clubTimeStart}
-                onChange={(e) => setClubTimeStart(e.target.value)}
+                onChange={(e) => setClubTimeStart(normalizeClubTime(e.target.value))}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors"
               />
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00'].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => {
+                      setClubTimeStart(p);
+                      const [h, m] = p.split(':').map(Number);
+                      setClubTimeEnd(`${String(h + 1).padStart(2, '0')}:${String(m + 30 >= 60 ? m - 30 : m + 30).padStart(2, '0')}`);
+                    }}
+                    className={`px-1.5 py-0.5 text-[10px] rounded font-bold transition-all cursor-pointer ${
+                      clubTimeStart === p
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              {clubTimeStart && (
+                <span className="text-[10px] text-emerald-700 font-bold block mt-1">
+                  Tanlangan: {clubTimeStart} (Kunduzgi vaqt)
+                </span>
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -510,9 +535,30 @@ export const LeaderClubsView: React.FC<{
                 type="time"
                 required
                 value={clubTimeEnd}
-                onChange={(e) => setClubTimeEnd(e.target.value)}
+                onChange={(e) => setClubTimeEnd(normalizeClubTime(e.target.value))}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors"
               />
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {['10:30', '11:30', '12:30', '13:30', '15:30', '16:30', '17:30'].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setClubTimeEnd(p)}
+                    className={`px-1.5 py-0.5 text-[10px] rounded font-bold transition-all cursor-pointer ${
+                      clubTimeEnd === p
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              {clubTimeEnd && (
+                <span className="text-[10px] text-emerald-700 font-bold block mt-1">
+                  Tugash: {clubTimeEnd}
+                </span>
+              )}
             </div>
           </div>
 

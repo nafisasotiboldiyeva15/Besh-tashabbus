@@ -99,7 +99,7 @@ export interface Session {
   location: string;
   status: 'planned' | 'held' | 'missed';
   heldNote: string;
-  // Photo evidence of held session
+  telegramLink?: string; // Telegram channel post link
   photoFileId?: string | null;
   photoFile?: FileMeta | null;
   attendeeCount?: number;
@@ -118,6 +118,8 @@ export interface Membership {
   studentName?: string;
   studentGroup?: string;
   studentFaculty?: string;
+  tutorName?: string;
+  phoneOrTelegram?: string;
   applicationFileId: string | null;
   applicationFile?: FileMeta | null;
   note: string;
@@ -171,8 +173,13 @@ export interface Submission {
   sessionTopic?: string;
   studentId: string;
   studentName?: string;
+  studentFaculty?: string;
   studentGroup?: string;
   title: string;
+  telegramLink?: string; // Telegram channel post link where member participation was covered
+  status?: 'pending' | 'approved' | 'rejected'; // Leader review status
+  leaderComment?: string;
+  reviewedAt?: string;
   pdfFileId: string | null;
   pdfFile?: FileMeta | null;
   photoFileId: string | null;
@@ -208,5 +215,7 @@ export interface DatabaseSchema {
   notifications?: AppNotification[];
   _serverUpdatedAt?: string;
   _deletedClubIds?: string[];
+  _deletedMembershipIds?: string[];
   _deletedSubmissionIds?: string[];
+  _deletedUserIds?: string[];
 }

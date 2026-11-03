@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, Download, Plus, FileText, CheckCircle2, Clock, Users, Calendar, Image as ImageIcon, Award, Shield } from 'lucide-react';
+import { BarChart3, Download, Plus, FileText, CheckCircle2, Clock, Users, Calendar, Send, Award, Shield } from 'lucide-react';
 import { I18N, Language, CATEGORIES } from '../../lib/i18n';
 import { storage, fmtD, ymd } from '../../lib/storage';
 import { StatusBadge, CategoryTag } from '../../components/common/Badge';
@@ -139,7 +139,7 @@ export const AnnualReportsView: React.FC<{
             <th style="${headerStyle}; text-align: center;">O‘tildi</th>
             <th style="${headerStyle}; text-align: center;">Bajarilish</th>
             <th style="${headerStyle}; text-align: center;">A'zolar</th>
-            <th style="${headerStyle}; text-align: center;">Rasmlar</th>
+            <th style="${headerStyle}; text-align: center;">Telegram havolalar</th>
           </tr>
         </thead>
         <tbody>
@@ -300,10 +300,10 @@ export const AnnualReportsView: React.FC<{
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <div className="flex items-center justify-between text-slate-400 mb-2">
             <span className="text-xs font-bold text-slate-600">{t.annual.photosCount}</span>
-            <ImageIcon className="w-4 h-4 text-amber-500" />
+            <Send className="w-4 h-4 text-sky-500" />
           </div>
-          <div className="text-2xl font-black text-amber-600">{totalPhotos}</div>
-          <div className="text-[11px] text-slate-400 mt-1">Dars fotodalillari</div>
+          <div className="text-2xl font-black text-sky-600">{totalPhotos}</div>
+          <div className="text-[11px] text-slate-400 mt-1">Kanalda yoritilgan postlar</div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs col-span-2 lg:col-span-1">
@@ -445,9 +445,9 @@ export const AnnualReportsView: React.FC<{
                   </div>
 
                   <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                    <span className="flex items-center gap-1 font-semibold">
-                      <ImageIcon className="w-3.5 h-3.5 text-amber-500" />
-                      <span>{club.photoCount || 0} ta fotodalil</span>
+                    <span className="flex items-center gap-1 font-semibold text-sky-700">
+                      <Send className="w-3.5 h-3.5 text-sky-500" />
+                      <span>{club.photoCount || 0} ta Telegram havola</span>
                     </span>
                     {club.statuteFile && (
                       <a

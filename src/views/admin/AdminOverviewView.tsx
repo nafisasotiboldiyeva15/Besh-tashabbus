@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, FileCheck, CalendarCheck, AlertCircle, Award, BookOpen, Layers, ShieldAlert, Trash2, Sparkles } from 'lucide-react';
+import { Users, FileCheck, CalendarCheck, AlertCircle, Award, BookOpen, Layers, ShieldAlert, Trash2, Sparkles, Send } from 'lucide-react';
 import { I18N, Language, CATEGORIES } from '../../lib/i18n';
 import { storage } from '../../lib/storage';
 
@@ -8,15 +8,10 @@ export const AdminOverviewView: React.FC<{
   onSelectView?: (view: string) => void;
 }> = ({ lang, onSelectView }) => {
   const t = I18N[lang];
-  const [tick, setTick] = useState(0);
   const stats = storage.getAdminStats();
   const clubs = storage.getClubs();
   const rejectedClubs = clubs.filter((c) => c.statuteStatus === 'rejected');
-
-  const handleSeed5Tashabbus = () => {
-    storage.resetOrSeed5TashabbusClubs();
-    setTick((v) => v + 1);
-  };
+  const telegramPostsCount = storage.getSessions().filter((s) => Boolean(s.telegramLink)).length;
 
   const statCards = [
     {
@@ -24,48 +19,56 @@ export const AdminOverviewView: React.FC<{
       value: stats.clubs,
       icon: Users,
       color: 'bg-blue-50 text-blue-700 border-blue-200',
+      viewKey: 'clubs',
     },
     {
       title: t.admin.statutesPending,
       value: stats.statutesPending,
       icon: AlertCircle,
       color: 'bg-amber-50 text-amber-700 border-amber-200',
+      viewKey: 'statutes',
     },
     {
       title: t.admin.membersPending,
       value: stats.membershipsPending,
       icon: FileCheck,
       color: 'bg-amber-50 text-amber-700 border-amber-200',
+      viewKey: 'memberships',
     },
     {
       title: t.admin.sessionsHeld,
       value: stats.sessionsHeld,
       icon: CalendarCheck,
       color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      viewKey: 'schedule',
     },
     {
       title: t.admin.sessionsMissed,
       value: stats.sessionsMissed,
       icon: AlertCircle,
       color: stats.sessionsMissed > 0 ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-slate-50 text-slate-700 border-slate-200',
+      viewKey: 'schedule',
     },
     {
       title: t.admin.students,
       value: stats.students,
       icon: Users,
       color: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      viewKey: 'memberships',
     },
     {
-      title: t.admin.photosTotal,
-      value: stats.photosCount,
-      icon: Award,
-      color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      title: 'Telegram havolalar',
+      value: telegramPostsCount,
+      icon: Send,
+      color: 'bg-sky-50 text-sky-700 border-sky-200',
+      viewKey: 'submissions',
     },
     {
       title: t.annual.title,
       value: stats.annualReports,
       icon: BookOpen,
       color: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      viewKey: 'annual',
     },
   ];
 
@@ -81,16 +84,6 @@ export const AdminOverviewView: React.FC<{
             {t.admin.sub}
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={handleSeed5Tashabbus}
-          className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-98 shrink-0"
-          title="5 muhim tashabbus to‘garaklari maʼlumotlarini yangilash / to‘ldirish"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>5 tashabbus to‘garaklarini yuklash</span>
-        </button>
       </div>
 
       {/* Prominent Rejected Clubs Alert in Overview */}
@@ -143,7 +136,16 @@ export const AdminOverviewView: React.FC<{
           return (
             <div
               key={idx}
-              className={`p-4 sm:p-5 rounded-2xl border shadow-xs transition-all ${card.color}`}
+              onClick={() => {
+                if (card.viewKey && onSelectView) {
+                  onSelectView(card.viewKey);
+                }
+              }}
+              className={`p-4 sm:p-5 rounded-2xl border shadow-xs transition-all ${card.color} ${
+                card.viewKey && onSelectView
+                  ? 'cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-98'
+                  : ''
+              }`}
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs sm:text-sm font-bold opacity-80 line-clamp-1">

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { CalendarDays, Plus, Download, Edit3, Trash2, Check, X, Clock, MapPin, Camera, Image as ImageIcon, Eye, Users } from 'lucide-react';
+import { CalendarDays, Plus, Download, Edit3, Trash2, Check, X, Clock, MapPin, Send, ExternalLink, Users } from 'lucide-react';
 import { I18N, Language } from '../../lib/i18n';
-import { storage, fmtD, weekdayOf, ymd, calculateSlotDates } from '../../lib/storage';
+import { storage, fmtD, weekdayOf, ymd, calculateSlotDates, normalizeClubTime } from '../../lib/storage';
 import { StatusBadge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { ScheduleSlot, Session, User, Club } from '../../types';
@@ -23,8 +23,8 @@ export const LeaderScheduleView: React.FC<{
   const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
   const [slotClubId, setSlotClubId] = useState(clubs[0]?.id || '');
   const [slotWeekday, setSlotWeekday] = useState(1);
-  const [slotTimeStart, setSlotTimeStart] = useState('15:00');
-  const [slotTimeEnd, setSlotTimeEnd] = useState('16:30');
+  const [slotTimeStart, setSlotTimeStart] = useState('11:00');
+  const [slotTimeEnd, setSlotTimeEnd] = useState('12:30');
   const [slotRoom, setSlotRoom] = useState('');
   const today = ymd(new Date());
   const futureDate = new Date();
@@ -42,21 +42,17 @@ export const LeaderScheduleView: React.FC<{
   const [extraClubId, setExtraClubId] = useState(clubs[0]?.id || '');
   const [extraTopic, setExtraTopic] = useState('');
   const [extraDate, setExtraDate] = useState(today);
-  const [extraTime, setExtraTime] = useState('15:00');
+  const [extraTime, setExtraTime] = useState('11:00');
   const [extraLocation, setExtraLocation] = useState('');
   const [extraConductor, setExtraConductor] = useState(user.fullName);
 
-  // Photo Report (Mark Session Held) modal state
+  // Held session with Telegram link modal state
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [targetSession, setTargetSession] = useState<Session | null>(null);
   const [heldNote, setHeldNote] = useState('');
   const [attendeeCount, setAttendeeCount] = useState<number>(15);
   const [conductorName, setConductorName] = useState(user.fullName);
-  const [sessionPhoto, setSessionPhoto] = useState<{ name: string; mime: string; data: string } | null>(null);
-
-  // View Photo Preview Modal
-  const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
-  const [viewingPhotoSession, setViewingPhotoSession] = useState<Session | null>(null);
+  const [sessionTelegramLink, setSessionTelegramLink] = useState('');
 
   const [isExporting, setIsExporting] = useState(false);
 
@@ -81,8 +77,8 @@ export const LeaderScheduleView: React.FC<{
       setEditingSlotId(slot.id);
       setSlotClubId(slot.clubId);
       setSlotWeekday(slot.weekday);
-      setSlotTimeStart(slot.timeStart);
-      setSlotTimeEnd(slot.timeEnd);
+      setSlotTimeStart(normalizeClubTime(slot.timeStart));
+      setSlotTimeEnd(normalizeClubTime(slot.timeEnd));
       setSlotRoom(slot.room);
       setSlotStartDate(slot.startDate);
       setSlotEndDate(slot.endDate);
@@ -90,8 +86,8 @@ export const LeaderScheduleView: React.FC<{
       setEditingSlotId(null);
       setSlotClubId(clubs[0].id);
       setSlotWeekday(1);
-      setSlotTimeStart('15:00');
-      setSlotTimeEnd('16:30');
+      setSlotTimeStart('11:00');
+      setSlotTimeEnd('12:30');
       setSlotRoom(clubs[0]?.room || '2-o‘quv binosi, 304-auditoriya');
       setSlotStartDate(today);
       setSlotEndDate(ymd(futureDate));
@@ -139,41 +135,26 @@ export const LeaderScheduleView: React.FC<{
     }
   };
 
-  // Open photo upload modal to mark session held
+  // Open modal to mark session held with Telegram link
   const handleOpenPhotoModal = (ses: Session) => {
     setTargetSession(ses);
     setHeldNote(ses.heldNote || '');
     setAttendeeCount(ses.attendeeCount || 15);
     setConductorName(ses.conductorName || user.fullName);
-    setSessionPhoto(null);
+    setSessionTelegramLink(ses.telegramLink || '');
     setIsPhotoModalOpen(true);
-  };
-
-  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 8 * 1024 * 1024) {
-      showToast('Fayl hajmi 8 MB dan oshmasligi kerak', 'err');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setSessionPhoto({
-        name: file.name,
-        mime: file.type || 'image/jpeg',
-        data: reader.result as string,
-      });
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleSaveHeldWithPhoto = (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetSession) return;
-    if (!sessionPhoto && !targetSession.photoFileId) {
-      showToast('Dars o‘tilganini tasdiqlovchi fotosurat yuklash majburiy', 'err');
+    const cleanLink = sessionTelegramLink.trim();
+    if (!cleanLink) {
+      showToast('Kanalda yoritilgan Telegram post havolasini kiritish majburiy', 'err');
+      return;
+    }
+    if (!cleanLink.startsWith('http://') && !cleanLink.startsWith('https://') && !cleanLink.startsWith('t.me/')) {
+      showToast('Havola to‘g‘ri formatda bo‘lishi kerak (masalan: https://t.me/kanal/123)', 'err');
       return;
     }
 
@@ -184,11 +165,14 @@ export const LeaderScheduleView: React.FC<{
         note: heldNote,
         attendeeCount,
         conductorName,
-        photoFile: sessionPhoto || undefined,
+        telegramLink: cleanLink.startsWith('t.me/') ? `https://${cleanLink}` : cleanLink,
         userId: user.id,
       });
 
-      showToast("Mashg‘ulot o‘tkazilgani va fotosurat muvaffaqiyatli saqlandi", 'ok');
+      showToast(
+        "Mashg‘ulot o‘tkazilgani va Telegram havola saqlandi. Oldingi havolasi kiritilmagan darslar 'O‘tilmadi'ga o‘tkazildi.",
+        'ok'
+      );
       setIsPhotoModalOpen(false);
       refreshData();
     } catch (err: unknown) {
@@ -499,30 +483,22 @@ export const LeaderScheduleView: React.FC<{
                         ) : null}
                       </td>
 
-                      {/* Photo Evidence Column */}
+                      {/* Telegram Link Column */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
-                        {ses.photoFile ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setViewingPhotoUrl(ses.photoFile!.url);
-                              setViewingPhotoSession(ses);
-                            }}
-                            className="group inline-flex items-center gap-1.5 p-1 pr-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
-                            title="Dars fotosuratini ko‘rish"
+                        {ses.telegramLink ? (
+                          <a
+                            href={ses.telegramLink.startsWith('http') ? ses.telegramLink : `https://${ses.telegramLink}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-bold transition-all shadow-2xs group"
+                            title="Telegram postini ochish"
                           >
-                            <img
-                              src={ses.photoFile.url}
-                              alt="Dars fotosurati"
-                              className="w-7 h-7 rounded object-cover shadow-2xs group-hover:scale-105 transition-transform"
-                            />
-                            <span className="text-[11px] font-bold text-emerald-800">
-                              Surat mavjud
-                            </span>
-                          </button>
+                            <Send className="w-3.5 h-3.5 text-sky-500 group-hover:scale-110 transition-transform" />
+                            <span>Telegram post ↗</span>
+                          </a>
                         ) : (
                           <span className="text-[11px] text-slate-400 italic">
-                            Rasm yuklanmagan
+                            Havola kiritilmagan
                           </span>
                         )}
                       </td>
@@ -533,15 +509,15 @@ export const LeaderScheduleView: React.FC<{
                           <button
                             type="button"
                             onClick={() => handleOpenPhotoModal(ses)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                               ses.status === 'held'
-                                ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300'
+                                ? 'bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300'
                                 : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
                             }`}
-                            title={ses.status === 'held' ? "Suratni yangilash" : "Dars o'tildi va rasm yuklash"}
+                            title={ses.status === 'held' ? "Havolani yangilash" : "Dars o'tildi — Telegram havola"}
                           >
-                            <Camera className="w-3.5 h-3.5" />
-                            <span>{ses.status === 'held' ? "Rasm yangilash" : t.sch.photoUploadBtn}</span>
+                            <Send className="w-3.5 h-3.5" />
+                            <span>{ses.status === 'held' ? "Havolani yangilash" : t.sch.photoUploadBtn}</span>
                           </button>
 
                           {ses.status !== 'missed' && (
@@ -634,9 +610,34 @@ export const LeaderScheduleView: React.FC<{
                 type="time"
                 required
                 value={slotTimeStart}
-                onChange={(e) => setSlotTimeStart(e.target.value)}
+                onChange={(e) => setSlotTimeStart(normalizeClubTime(e.target.value))}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors"
               />
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00'].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => {
+                      setSlotTimeStart(p);
+                      const [h, m] = p.split(':').map(Number);
+                      setSlotTimeEnd(`${String(h + 1).padStart(2, '0')}:${String(m + 30 >= 60 ? m - 30 : m + 30).padStart(2, '0')}`);
+                    }}
+                    className={`px-1.5 py-0.5 text-[10px] rounded font-bold transition-all cursor-pointer ${
+                      slotTimeStart === p
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              {slotTimeStart && (
+                <span className="text-[10px] text-emerald-700 font-bold block mt-1">
+                  Tanlangan: {slotTimeStart} (Kunduzgi vaqt)
+                </span>
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -646,9 +647,30 @@ export const LeaderScheduleView: React.FC<{
                 type="time"
                 required
                 value={slotTimeEnd}
-                onChange={(e) => setSlotTimeEnd(e.target.value)}
+                onChange={(e) => setSlotTimeEnd(normalizeClubTime(e.target.value))}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors"
               />
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {['10:30', '11:30', '12:30', '13:30', '15:30', '16:30', '17:30'].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setSlotTimeEnd(p)}
+                    className={`px-1.5 py-0.5 text-[10px] rounded font-bold transition-all cursor-pointer ${
+                      slotTimeEnd === p
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              {slotTimeEnd && (
+                <span className="text-[10px] text-emerald-700 font-bold block mt-1">
+                  Tugash: {slotTimeEnd}
+                </span>
+              )}
             </div>
           </div>
 
@@ -700,7 +722,7 @@ export const LeaderScheduleView: React.FC<{
         </form>
       </Modal>
 
-      {/* Photo Report (Held Session with Photo) Modal */}
+      {/* Held Session with Telegram Link Modal */}
       <Modal
         isOpen={isPhotoModalOpen}
         onClose={() => setIsPhotoModalOpen(false)}
@@ -717,9 +739,10 @@ export const LeaderScheduleView: React.FC<{
             <button
               type="button"
               onClick={handleSaveHeldWithPhoto}
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-1.5"
             >
-              Tasdiqlash va Suratni saqlash
+              <Send className="w-3.5 h-3.5" />
+              <span>Tasdiqlash va Havolani saqlash</span>
             </button>
           </>
         }
@@ -734,44 +757,27 @@ export const LeaderScheduleView: React.FC<{
               </div>
             </div>
 
-            {/* Photo upload input */}
+            {/* Telegram Link Input */}
             <div>
               <label className="block text-xs font-extrabold text-slate-900 mb-1">
-                Dars o'tilganini tasdiqlovchi fotosurat *
+                Kanalda yoritilgan Telegram post havolasi *
               </label>
               <p className="text-[11px] text-slate-500 mb-2">
-                Mashg'ulot xonasida talabalar bilan birga olingan haqiqiy fotosuratni yuklang (JPG/PNG).
+                Mashg‘ulot o‘tkazilganligi va to‘garak a’zolari qatnashganligi kanalimizda yoritilgan post havolasini kiriting.
               </p>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoFileChange}
-                className="w-full text-xs text-slate-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
-              />
-
-              {sessionPhoto ? (
-                <div className="mt-3 relative rounded-xl overflow-hidden border border-slate-200">
-                  <img
-                    src={sessionPhoto.data}
-                    alt="Tanlangan rasm"
-                    className="w-full h-44 object-cover"
-                  />
-                  <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-black/70 text-white text-[10px] font-bold">
-                    ✓ Yangi rasm tanlandi
-                  </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-sky-500">
+                  <Send className="w-4 h-4" />
                 </div>
-              ) : targetSession.photoFile ? (
-                <div className="mt-3 relative rounded-xl overflow-hidden border border-slate-200">
-                  <img
-                    src={targetSession.photoFile.url}
-                    alt="Mavjud rasm"
-                    className="w-full h-44 object-cover"
-                  />
-                  <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-black/70 text-white text-[10px] font-bold">
-                    Mavjud rasm saqlangan
-                  </div>
-                </div>
-              ) : null}
+                <input
+                  type="url"
+                  value={sessionTelegramLink}
+                  onChange={(e) => setSessionTelegramLink(e.target.value)}
+                  placeholder="https://t.me/kanal_nomi/123"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
+                  required
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -816,63 +822,6 @@ export const LeaderScheduleView: React.FC<{
           </form>
         )}
       </Modal>
-
-      {/* View Photo Lightbox Modal */}
-      {viewingPhotoUrl && (
-        <div
-          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setViewingPhotoUrl(null)}
-        >
-          <div
-            className="bg-white rounded-3xl overflow-hidden max-w-2xl w-full shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="relative">
-              <img
-                src={viewingPhotoUrl}
-                alt="Dars fotosurati"
-                className="w-full max-h-[70vh] object-contain bg-slate-900"
-              />
-              <button
-                type="button"
-                onClick={() => setViewingPhotoUrl(null)}
-                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center cursor-pointer transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {viewingPhotoSession && (
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-extrabold text-slate-900 text-base">
-                      {viewingPhotoSession.clubName}
-                    </h3>
-                    <p className="text-xs font-semibold text-blue-700 mt-0.5">
-                      Mavzu: {viewingPhotoSession.topic}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Sana: <b>{fmtD(viewingPhotoSession.date)}</b>, {viewingPhotoSession.time} • Xona: <b>{viewingPhotoSession.location}</b>
-                    </p>
-                  </div>
-                  {viewingPhotoSession.attendeeCount && (
-                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-extrabold shrink-0 border border-emerald-300">
-                      {viewingPhotoSession.attendeeCount} nafar qatnashchi
-                    </span>
-                  )}
-                </div>
-
-                {viewingPhotoSession.heldNote && (
-                  <p className="text-xs text-slate-600 mt-3 pt-3 border-t border-slate-100 italic">
-                    "{viewingPhotoSession.heldNote}"
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Edit Session Topic Modal */}
       <Modal
@@ -992,9 +941,30 @@ export const LeaderScheduleView: React.FC<{
                 type="time"
                 required
                 value={extraTime}
-                onChange={(e) => setExtraTime(e.target.value)}
+                onChange={(e) => setExtraTime(normalizeClubTime(e.target.value))}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors"
               />
+              <div className="flex flex-wrap gap-1 mt-1">
+                {['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00'].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setExtraTime(p)}
+                    className={`px-1.5 py-0.5 text-[9px] rounded font-bold transition-all cursor-pointer ${
+                      extraTime === p
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              {extraTime && (
+                <span className="text-[10px] text-emerald-700 font-bold block mt-1">
+                  Tanlangan: {extraTime} (Kunduzgi vaqt)
+                </span>
+              )}
             </div>
           </div>
 
